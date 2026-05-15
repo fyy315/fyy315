@@ -20,13 +20,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
 
       - name: Enable pnpm
         run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: pnpm install
 
       - name: Build Project
         run: pnpm run build
