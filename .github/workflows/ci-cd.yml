@@ -21,10 +21,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
+        cache: 'npm'
 
-    - name: Install pnpm
-      run: npm install -g pnpm
+    - name: Enable pnpm
+      run: corepack enable
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile || pnpm install
@@ -49,10 +49,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '22.x'
-        cache: 'pnpm'
+        cache: 'npm'
 
-    - name: Install pnpm
-      run: npm install -g pnpm
+    - name: Enable pnpm
+      run: corepack enable
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile || pnpm install
