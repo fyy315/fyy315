@@ -19,7 +19,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version: '22'
+
+      - name: Force official npm registry
+        run: echo 'registry=https://registry.npmjs.org' > .npmrc
 
       - name: Enable pnpm
         run: corepack enable
@@ -31,6 +34,7 @@ jobs:
         run: pnpm run build
         env:
           CI: true
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
 
       - name: Deploy to Vercel
         run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
