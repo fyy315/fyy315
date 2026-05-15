@@ -2,23 +2,23 @@
   "version": 2,
   "builds": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/dist/$1"
     }
   ],
+  "buildCommand": "echo 'registry=https://registry.npmjs.org' > .npmrc && pnpm install && pnpm run build",
+  "installCommand": "echo 'registry=https://registry.npmjs.org' > .npmrc && pnpm install",
   "env": {
     "NODE_ENV": "production"
   },
+  "regions": ["iad1"],
   "headers": [
     {
       "source": "/api/(.*)",
