@@ -20,20 +20,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          elif [ -f pnpm-lock.yaml ]; then
-            npx pnpm install
-          else
-            npm install
-          fi
+        run: pnpm install --frozen-lockfile || pnpm install
 
       - name: Build Project
-        run: npm run build
+        run: pnpm run build
         env:
           CI: true
 
