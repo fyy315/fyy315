@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase 认证测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        .message.show {
+            display: block;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .token-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .token-section label {
+            font-weight: 600;
+        }
+        .token-section input {
+            background: #e9ecef;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Supabase 认证测试</h1>
+            <p>直接在浏览器中测试 Supabase 认证 API</p>
+        </div>
+        
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('login')">登录</button>
+                <button class="tab" onclick="showTab('signup')">注册</button>
+                <button class="tab" onclick="showTab('profile')">用户资料</button>
+                <button class="tab" onclick="showTab('api')">API测试</button>
+            </div>
+            
+            <!-- 登录 -->
+            <div id="login-tab">
+                <h2>用户登录</h2>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>邮箱地址</label>
+                        <input type="email" id="login-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" id="login-btn">登录</button>
+                </form>
+                <div id="login-message" class="message"></div>
+                
+                <div id="login-success" class="token-section hidden">
+                    <h3>✅ 登录成功！</h3>
+                    <div class="form-group">
+                        <label>Access Token (保存好，不要泄露):</label>
+                        <input type="text" id="access-token-display" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>用户信息:</label>
+                        <pre id="user-data"></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 注册 -->
+            <div id="signup-tab" class="hidden">
+                <h2>新用户注册</h2>
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label>邮箱地址</label>
+                        <input type="email" id="signup-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码（至少6位）</label>
+                        <input type="password" id="signup-password" placeholder="••••••••" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>确认密码</label>
+                        <input type="password" id="signup-confirm" placeholder="••••••••" minlength="6" required>
+                    </div>
+                    <button type="submit" id="signup-btn">注册</button>
+                </form>
+                <div id="signup-message" class="message"></div>
+            </div>
+            
+            <!-- 用户资料 -->
+            <div id="profile-tab" class="hidden">
+                <h2>用户资料</h2>
+                <form onsubmit="handleGetProfile(event)">
+                    <div class="form-group">
+                        <label>Access Token</label>
+                        <input type="text" id="profile-token" placeholder="粘贴你的access_token">
+                    </div>
+                    <button type="submit">获取用户资料</button>
+                </form>
+                <div id="profile-message" class="message"></div>
+                <pre id="profile-data" class="hidden"></pre>
+            </div>
+            
+            <!-- API测试 -->
+            <div id="api-tab" class="hidden">
+                <h2>API 接口测试</h2>
+                <div class="form-group">
+                    <label>Access Token</label>
+                    <input type="text" id="api-token" placeholder="粘贴你的access_token">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                    <button onclick="testGetProfile()">获取用户资料</button>
+                    <button onclick="testCreateTask()">创建任务</button>
+                    <button onclick="testGetTasks()">获取任务列表</button>
+                    <button onclick="handleLogout()">退出登录</button>
+                </div>
+                <div id="api-message" class="message"></div>
+                <pre id="api-result" style="margin-top: 20px;">API响应将显示在这里...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 配置
+        const SUPABASE_URL = 'https://zizysoujrdzsqxcstilu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inppenlzb3VqcmR6c3F4Y3N0aWx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTExNjYsImV4cCI6MjA5NDMyNzE2Nn0.GvUgim-TY0lZsYSmvUrAO0Y1Mkn02aNsGGFdkt_0cJE';
+
+        let currentUser = null;
+        let accessToken = null;
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id$="-tab"]').forEach(t => t.classList.add('hidden'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.remove('hidden');
+            
+            // 如果切换到profile或api tab，填充token
+            if (accessToken) {
+                document.getElementById('profile-token').value = accessToken;
+                document.getElementById('api-token').value = accessToken;
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            const message = document.getElementById('login-message');
+            
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+            message.className = 'message';
+            message.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.msg || data.message || '登录失败');
+                }
+                
+                currentUser = data.user;
+                accessToken = data.access_token;
+                
+                document.getElementById('login-success').classList.remove('hidden');
+                document.getElementById('access-token-display').value = accessToken;
+                document.getElementById('user-data').textContent = JSON.stringify(data, null, 2);
+                
+                message.textContent = '✅ 登录成功！';
+                message.className = 'message success show';
+                
+            } catch (error) {
+                message.textContent = '❌ ' + error.message;
+                message.className = 'message error show';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const btn = document.getElementById('signup-btn');
+            const message = document.getElementById('signup-message');
+            
+            if (password !== confirm) {
+                message.textContent = '❌ 两次密码输入不一致';
+                message.className = 'message error show';
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+            message.className = 'message';
+            message.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_ANON_KEY
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.msg || data.message || '注册失败');
+                }
+                
+                message.textContent = '✅ 注册成功！请查收验证邮件并登录。';
+                message.className = 'message success show';
+                
+                document.getElementById('signup-email').value = '';
+                document.getElementById('signup-password').value = '';
+                document.getElementById('signup-confirm').value = '';
+                
+            } catch (error) {
+                message.textContent = '❌ ' + error.message;
+                message.className = 'message error show';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '注册';
+            }
+        }
+
+        async function handleGetProfile(event) {
+            event.preventDefault();
+            const token = document.getElementById('profile-token').value;
+            const message = document.getElementById('profile-message');
+            const dataEl = document.getElementById('profile-data');
+            
+            if (!token) {
+                message.textContent = '❌ 请输入Access Token';
+                message.className = 'message error show';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取用户信息失败');
+                }
+                
+                const user = await response.json();
+                dataEl.textContent = JSON.stringify(user, null, 2);
+                dataEl.classList.remove('hidden');
+                
+                message.textContent = '✅ 获取成功';
+                message.className = 'message success show';
+                
+            } catch (error) {
+                message.textContent = '❌ ' + error.message;
+                message.className = 'message error show';
+            }
+        }
+
+        async function handleLogout() {
+            const message = document.getElementById('api-message');
+            
+            if (accessToken) {
+                try {
+                    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        }
+                    });
+                } catch (e) {
+                    console.log('Logout request failed');
+                }
+            }
+            
+            currentUser = null;
+            accessToken = null;
+            
+            document.getElementById('login-success').classList.add('hidden');
+            
+            message.textContent = '✅ 已退出登录';
+            message.className = 'message info show';
+            
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
+
+        async function testGetProfile() {
+            const token = document.getElementById('api-token').value;
+            const result = document.getElementById('api-result');
+            
+            if (!token) {
+                result.textContent = '❌ 请先输入Access Token';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+                
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                result.textContent = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function testCreateTask() {
+            const token = document.getElementById('api-token').value;
+            const result = document.getElementById('api-result');
+            
+            if (!token) {
+                result.textContent = '❌ 请先输入Access Token';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        title: '测试任务 ' + new Date().toLocaleString(),
+                        description: '这是一个通过API创建的任务'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || data.msg || '创建任务失败');
+                }
+                
+                result.textContent = '✅ 任务创建成功！\n\n' + JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                result.textContent = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function testGetTasks() {
+            const token = document.getElementById('api-token').value;
+            const result = document.getElementById('api-result');
+            
+            if (!token) {
+                result.textContent = '❌ 请先输入Access Token';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/tasks?select=*&order=created_at.desc`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || data.msg || '获取任务失败');
+                }
+                
+                result.textContent = '📋 任务列表：\n\n' + JSON.stringify(data, null, 2);
+                
+            } catch (error) {
+                result.textContent = '❌ Error: ' + error.message;
+            }
+        }
+
+        // 页面加载时显示提示
+        window.onload = function() {
+            console.log('Supabase Auth Test Page Loaded');
+            console.log('URL:', SUPABASE_URL);
+            console.log('使用此页面测试 Supabase 认证功能');
+        };
+    </script>
+</body>
+</html>
